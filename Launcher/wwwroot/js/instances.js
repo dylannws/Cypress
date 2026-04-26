@@ -221,9 +221,15 @@ function onInstanceOutput(pid, line) {
             if (!inst.sideChannelPeers) inst.sideChannelPeers = {};
             const extra = (parsed.extra || '').split('|');
             const role = extra[0] || 'player';
+            const hwid = extra[1] || '';
+            const components = parsed.components || [];
             const displayName = parsed.display_name || parsed.name;
             const accountId = parsed.account_id || '';
-            inst.sideChannelPeers[parsed.name] = { name: parsed.name, displayName: displayName, accountId: accountId, isMod: role === 'mod', connected: true, authTime: parsed.ts || Date.now() };
+            inst.sideChannelPeers[parsed.name] = { name: parsed.name, displayName: displayName, accountId: accountId, hwid: hwid, components: components, isMod: role === 'mod', connected: true, authTime: parsed.ts || Date.now() };
+            if (!inst.knownComponents) inst.knownComponents = {};
+            if (!inst.knownComponents[parsed.name]) inst.knownComponents[parsed.name] = new Set();
+            if (hwid) inst.knownComponents[parsed.name].add(hwid);
+            components.forEach(c => { if (c) inst.knownComponents[parsed.name].add(c); });
             if (!inst.peerArchive) inst.peerArchive = {};
             inst.peerArchive[parsed.name] = Object.assign(inst.peerArchive[parsed.name] || {}, inst.sideChannelPeers[parsed.name]);
             if (selectedInstancePid === pid) updatePlayerList();
