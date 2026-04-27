@@ -46,7 +46,10 @@ static std::unordered_map<std::string, std::unordered_set<uint32_t>> g_eventSync
 	{"Gameplay/GameModes/GameModeLogic/CinematicLogic/GameModeLogic_CinematicLogic", { 42199542}}, //server side input restrictions
 	{"Gameplay/ComplexObjects/ZombieTeleporterExit", { 63478245}},
 	{"Gameplay/ComplexObjects/PlantTeleporterExit", { 65825568}},
-	{"Gameplay/Logic/OnInteractionHelperPrefab", {59695446}},
+	// {"Gameplay/Logic/OnInteractionHelperPrefab", {59695446}}, //commented out for the time being due to actual interactions, such as diffusing gnome, ruining the zomburbia party, and turf teleporters using this flag
+
+	//Crazy Options that apply to the server via QA Debug menu, such as Berserker, Crazy Regen, and Healing Auras
+	{"Gameplay/GameModes/GameModePrefabs/CrazyOptions/CrazyOptions_Prefab", { 37379582, 63903114, 60042275}},
 };
 
 inline bool isEventSyncBlacklisted(const char* prefab, uint32_t flags)
