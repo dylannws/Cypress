@@ -89,10 +89,10 @@ namespace Cypress
 		void UpdatePlayerNamesCache();
 		std::vector<std::string> GetCachedPlayerNames() const;
 
-		void AddModerator(const std::string& hwid);
-		void RemoveModerator(const std::string& hwid);
-		bool IsModerator(const std::string& hwid) const;
-		const std::vector<std::string>& GetModeratorHWIDs() const { return m_moderatorHWIDs; }
+		void AddModerator(const std::string& accountId);
+		void RemoveModerator(const std::string& accountId);
+		bool IsModerator(const std::string& accountId) const;
+		const std::vector<std::string>& GetModeratorAccountIds() const { return m_moderatorAccountIds; }
 		bool LoadModerators(const std::string& path);
 		bool SaveModerators(const std::string& path) const;
 
@@ -123,7 +123,7 @@ namespace Cypress
 		std::mutex m_handlersMutex;
 		std::unordered_map<std::string, SideChannelHandler> m_handlers;
 
-		std::vector<std::string> m_moderatorHWIDs;
+		std::vector<std::string> m_moderatorAccountIds;
 		SideChannelAuthCallback m_onModeratorAuth;
 		SideChannelAuthCallback m_onAuth;
 		AuthRejectCallback m_onAuthReject;

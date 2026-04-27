@@ -497,24 +497,24 @@ namespace Cypress
 	{
 		if (cmd.starts_with("Cypress.AddMod "))
 		{
-			std::string hwid = cmd.substr(15);
-			if (!hwid.empty())
+			std::string accountId = cmd.substr(15);
+			if (!accountId.empty())
 			{
-				m_server->GetSideChannel()->AddModerator(hwid);
+				m_server->GetSideChannel()->AddModerator(accountId);
 				m_server->GetSideChannel()->SaveModerators("moderators.json");
-				CYPRESS_LOGTOSERVER(LogLevel::Info, "Added moderator HWID: {}...", hwid.substr(0, 8));
+				CYPRESS_LOGTOSERVER(LogLevel::Info, "Added moderator account: {}...", accountId.substr(0, 8));
 				if (m_embeddedMode)
 					Cypress_EmitJsonPlayerEvent("modListChanged", -1, "", nullptr);
 			}
 		}
 		else if (cmd.starts_with("Cypress.RemoveMod "))
 		{
-			std::string hwid = cmd.substr(18);
-			if (!hwid.empty())
+			std::string accountId = cmd.substr(18);
+			if (!accountId.empty())
 			{
-				m_server->GetSideChannel()->RemoveModerator(hwid);
+				m_server->GetSideChannel()->RemoveModerator(accountId);
 				m_server->GetSideChannel()->SaveModerators("moderators.json");
-				CYPRESS_LOGTOSERVER(LogLevel::Info, "Removed moderator HWID: {}...", hwid.substr(0, 8));
+				CYPRESS_LOGTOSERVER(LogLevel::Info, "Removed moderator account: {}...", accountId.substr(0, 8));
 				if (m_embeddedMode)
 					Cypress_EmitJsonPlayerEvent("modListChanged", -1, "", nullptr);
 			}

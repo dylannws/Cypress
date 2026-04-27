@@ -154,10 +154,10 @@ namespace Cypress
 		return std::string(hex);
 	}
 
-	// hash an hwid for storage, we never store raw hwids on disk
-	static std::string HashHWID(const std::string& hwid)
+	// hash an account id for storage
+	static std::string HashAccountId(const std::string& accountId)
 	{
-		return detail::sha256hex("cypress-mod:" + hwid);
+		return detail::sha256hex("cypress-mod:" + accountId);
 	}
 
 	int GetSideChannelPort()
@@ -537,9 +537,9 @@ namespace Cypress
 			if (GetEnvironmentVariableA("CYPRESS_AUTO_MOD_HOST", autoModBuf, sizeof(autoModBuf)) > 0
 				&& strcmp(autoModBuf, "1") == 0)
 			{
-				if (m_moderatorHWIDs.empty())
+				if (m_moderatorAccountIds.empty())
 				{
-					AddModerator(peer.hwid);
+					AddModerator(peer.accountId);
 					SaveModerators("moderators.json");
 					peer.isModerator = true;
 					CYPRESS_LOGMESSAGE(LogLevel::Info, "SideChannel: Auto-modded first player {}", peer.name);
@@ -580,13 +580,12 @@ namespace Cypress
 
 			if (Cypress_IsEmbeddedMode())
 			{
-				// stdout to launcher/hoster: limited data (no ea_pid, no hwid, no components)
 				nlohmann::json authEvent = {
 					{"t", "sideChannelAuth"},
 					{"id", -1},
 					{"name", peer.name},
 					{"display_name", displayName},
-					{"extra", std::string(peer.isModerator ? "mod" : "player")},
+						{"extra", std::string(peer.isModerator ? "mod" : "player")},
 					{"account_id", peer.accountId}
 				};
 				Cypress_WriteRawStdout(authEvent.dump() + "\n");
@@ -705,7 +704,7 @@ namespace Cypress
 				peer.challengeNonce.clear();
 
 				peer.authenticated = !peer.name.empty() && !peer.hwid.empty();
-				peer.isModerator = IsModerator(peer.hwid);
+				peer.isModerator = !peer.accountId.empty() && IsModerator(peer.accountId);
 
 				// verify identity jwt, required when master pubkey is loaded
 				std::string jwt = msg.value("jwt", "");
@@ -999,18 +998,18 @@ namespace Cypress
 		m_handlers[type] = handler;
 	}
 
-	void SideChannelServer::AddModerator(const std::string& hwid)
+	void SideChannelServer::AddModerator(const std::string& accountId)
 	{
-		std::string hashed = HashHWID(hwid);
-		for (const auto& h : m_moderatorHWIDs)
+		std::string hashed = HashAccountId(accountId);
+		for (const auto& h : m_moderatorAccountIds)
 			if (h == hashed) return;
-		m_moderatorHWIDs.push_back(hashed);
+		m_moderatorAccountIds.push_back(hashed);
 
 		// update connected peers
 		std::lock_guard<std::recursive_mutex> lock(m_peersMutex);
 		for (auto& [sock, peer] : m_peers)
 		{
-			if (peer.hwid == hwid)
+			if (peer.accountId == accountId)
 			{
 				peer.isModerator = true;
 				SendToPeer(peer, { {"type", "moderatorStatus"}, {"moderator", true} });
@@ -1018,17 +1017,17 @@ namespace Cypress
 		}
 	}
 
-	void SideChannelServer::RemoveModerator(const std::string& hwid)
+	void SideChannelServer::RemoveModerator(const std::string& accountId)
 	{
-		std::string hashed = HashHWID(hwid);
-		m_moderatorHWIDs.erase(
-			std::remove(m_moderatorHWIDs.begin(), m_moderatorHWIDs.end(), hashed),
-			m_moderatorHWIDs.end());
+		std::string hashed = HashAccountId(accountId);
+		m_moderatorAccountIds.erase(
+			std::remove(m_moderatorAccountIds.begin(), m_moderatorAccountIds.end(), hashed),
+			m_moderatorAccountIds.end());
 
 		std::lock_guard<std::recursive_mutex> lock(m_peersMutex);
 		for (auto& [sock, peer] : m_peers)
 		{
-			if (peer.hwid == hwid)
+			if (peer.accountId == accountId)
 			{
 				peer.isModerator = false;
 				SendToPeer(peer, { {"type", "moderatorStatus"}, {"moderator", false} });
@@ -1036,10 +1035,10 @@ namespace Cypress
 		}
 	}
 
-	bool SideChannelServer::IsModerator(const std::string& hwid) const
+	bool SideChannelServer::IsModerator(const std::string& accountId) const
 	{
-		std::string hashed = HashHWID(hwid);
-		for (const auto& h : m_moderatorHWIDs)
+		std::string hashed = HashAccountId(accountId);
+		for (const auto& h : m_moderatorAccountIds)
 			if (h == hashed) return true;
 		return false;
 	}
@@ -1052,13 +1051,13 @@ namespace Cypress
 		try
 		{
 			auto j = nlohmann::json::parse(file);
-			m_moderatorHWIDs.clear();
+			m_moderatorAccountIds.clear();
 			for (const auto& entry : j)
 			{
 				if (entry.is_string())
-					m_moderatorHWIDs.push_back(entry.get<std::string>());
+					m_moderatorAccountIds.push_back(entry.get<std::string>());
 			}
-			CYPRESS_LOGMESSAGE(LogLevel::Info, "SideChannel: Loaded {} moderator(s)", m_moderatorHWIDs.size());
+			CYPRESS_LOGMESSAGE(LogLevel::Info, "SideChannel: Loaded {} moderator(s)", m_moderatorAccountIds.size());
 			return true;
 		}
 		catch (const std::exception& e)
@@ -1073,7 +1072,7 @@ namespace Cypress
 		std::ofstream file(path);
 		if (!file.is_open()) return false;
 
-		nlohmann::json j = m_moderatorHWIDs;
+		nlohmann::json j = m_moderatorAccountIds;
 		file << j.dump(2);
 		return file.good();
 	}
