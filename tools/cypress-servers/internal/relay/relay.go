@@ -954,6 +954,12 @@ func handleTCPConn(conn net.Conn, store *leaseStore) {
 		}
 
 		tunnel.mu.Lock()
+		if tunnel.clients == nil {
+			tunnel.mu.Unlock()
+			store.log(fmt.Sprintf("x  client %s rejected (tunnel torn down)", peer))
+			st.Rejected.Add(1)
+			return
+		}
 		clientID := tunnel.nextID
 		tunnel.nextID++
 		tunnel.clients[clientID] = conn
