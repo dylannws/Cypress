@@ -29,8 +29,7 @@ fb::eastl_arena_allocator& eastl_arena_allocator::operator=(const eastl_arena_al
 	this->mpArena = x.mpArena;
 	return *this;
 }
-
-bool fb::eastl_arena_allocator::operator==(const eastl_arena_allocator& x)
+bool fb::eastl_arena_allocator::operator==(const eastl_arena_allocator& x) const
 {
 	return this->mpArena == x.mpArena;
 }

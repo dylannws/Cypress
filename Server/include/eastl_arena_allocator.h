@@ -18,7 +18,7 @@ namespace fb
 		eastl_arena_allocator(const eastl_arena_allocator& x, const char* pName);
 
 		eastl_arena_allocator& operator=(const eastl_arena_allocator& x);
-		bool operator==(const eastl_arena_allocator& x);
+		bool operator==(const eastl_arena_allocator& x) const;
 
 		void* allocate(size_t n, int flags = 0);
 		void* allocate(size_t n, size_t alignment, size_t offset, int flags = 0);

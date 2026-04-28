@@ -8,7 +8,7 @@
 #include <chrono>
 #include <atomic>
 #include <optional>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <CypressIdentity.h>
 
 namespace Cypress

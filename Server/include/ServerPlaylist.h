@@ -2,7 +2,7 @@
 #include <vector>
 #include <string.h>
 #include <fstream>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <random>
 
 struct PlaylistLevelSetup
