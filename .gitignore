@@ -88,3 +88,4 @@ cmake_install.cmake
 cypress_GW1.lib
 cypress_GW2.lib
 cypress_BFN.lib
+Server/CMakeSettings.json

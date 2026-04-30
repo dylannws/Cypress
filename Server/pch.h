@@ -16,7 +16,6 @@
 #define EASTL_SIZE_T_32BIT 1
 #define EASTL_CUSTOM_FLOAT_CONSTANTS_REQUIRED 1
 #define EA_HAVE_CPP11_INITIALIZER_LIST 1
-#define CHAR8_T_DEFINED 1
 
 #include "eastl_arena_allocator.h"
 
