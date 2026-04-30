@@ -64,14 +64,12 @@ namespace Cypress
 			}
 		});
 
-#ifdef CYPRESS_GW2
 		// Register freecam handler before connecting
 		m_sideChannel.SetHandler("freecam", [this](const nlohmann::json& msg, SideChannelPeer& peer)
 		{
 			bool nowActive = ToggleFreeCam();
 			CYPRESS_LOGMESSAGE(LogLevel::Info, "Freecam {}", nowActive ? "activated" : "deactivated");
 		});
-#endif
 
 		if (m_sideChannel.Connect(serverIP, port))
 		{
