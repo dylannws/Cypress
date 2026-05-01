@@ -3,7 +3,7 @@ project(Cypress LANGUAGES C CXX)
 
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 include(FetchContent)
@@ -19,8 +19,15 @@ FetchContent_Declare(
 ### EASTL
 FetchContent_Declare(
   EASTL
-  GIT_REPOSITORY https://github.com/electronicarts/EASTL.git
-  GIT_TAG e323f67e5d93fdadcd44f7998069d804697b1945
+  GIT_REPOSITORY https://github.com/kitsilanosoftware/EASTL.git
+  GIT_TAG 4e576b099d2ef475262459aa8a888ebed5788807
+)
+
+###EABase
+FetchContent_Declare(
+  EABase
+  GIT_REPOSITORY https://github.com/kitsilanosoftware/EABase.git
+  GIT_TAG 53a97991c69c2f6394a8ff95057743daea6a1f3e
 )
 
 ### json
@@ -40,6 +47,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(
   minhook
   EASTL
+  EABase
   nlohmann_json
   monocypher
 )
@@ -66,6 +74,14 @@ add_library(cypress SHARED ${SOURCES})
 # Explicitly compile monocypher
 target_sources(cypress PRIVATE
     ${monocypher_SOURCE_DIR}/src/monocypher.c
+    ${EASTL_SOURCE_DIR}/source/assert.cpp
+    ${EASTL_SOURCE_DIR}/source/string.cpp
+)
+
+set_source_files_properties(
+    ${EASTL_SOURCE_DIR}/source/assert.cpp
+    ${EASTL_SOURCE_DIR}/source/string.cpp
+    PROPERTIES SKIP_PRECOMPILE_HEADERS ON
 )
 
 # Includes
@@ -74,6 +90,8 @@ target_include_directories(cypress PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/Source
     ${monocypher_SOURCE_DIR}/src
+    ${EASTL_SOURCE_DIR}/include
+    ${EABase_SOURCE_DIR}/include/Common
 )
 
 # Precompiled headers
@@ -88,6 +106,7 @@ target_compile_definitions(cypress PRIVATE
     GW2SERVERPROJECT_EXPORTS
     _WINDOWS
     _USRDLL
+    CHAR8_T_DEFINED
 )
 
 # Variant-specific defines + output name
@@ -110,7 +129,6 @@ endif()
 # Link libraries
 target_link_libraries(cypress PRIVATE
     minhook
-    EASTL
     nlohmann_json
     ws2_32.lib
     winhttp.lib

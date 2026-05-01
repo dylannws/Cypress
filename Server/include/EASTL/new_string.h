@@ -2,6 +2,7 @@
 #include <string>
 #include "eastl_arena_allocator.h"
 
+#ifdef CYPRESS_BFN
 namespace eastl
 {
     //BFN uses an updated basic_string
@@ -68,3 +69,4 @@ namespace eastl
         void operator=(const char* str) { set(str); }
     };
 }
+#endif
