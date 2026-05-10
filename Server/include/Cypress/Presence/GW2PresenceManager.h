@@ -125,7 +125,9 @@ namespace fb
         // same as above but with a different value type
         eastl::map<int, int> unkmap;
     };
+#ifdef CYPRESS_GW2
     static_assert(offsetof(PVZClientUtil, unkmap) == 0x2D1618);
+#endif
 
     struct Thing
     {
