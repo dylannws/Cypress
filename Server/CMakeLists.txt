@@ -34,9 +34,16 @@ include(FetchContent)
 # Dependencies
 ### MinHook
 FetchContent_Declare(
-        minhook
-        GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git
-        GIT_TAG 1e9ad1eb42db11bfcb65461f687c656612d1b555
+  minhook
+  GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git
+  GIT_TAG 1e9ad1eb42db11bfcb65461f687c656612d1b555
+)
+
+### json
+FetchContent_Declare(
+  nlohmann_json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG 8167d2f64122c3ef7e5a0d9cab239fdba37aa54c
 )
 
 ### Monocypher
@@ -47,8 +54,9 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(
-        minhook
-        monocypher
+  minhook
+  nlohmann_json
+  monocypher
 )
 
 # Options for variants
@@ -72,20 +80,15 @@ add_library(Cypress SHARED ${SOURCES})
 
 # Explicitly compile monocypher
 target_sources(Cypress PRIVATE
-        ${monocypher_SOURCE_DIR}/src/monocypher.c
-)
-
-set_source_files_properties(
-        PROPERTIES SKIP_PRECOMPILE_HEADERS ON
+    ${monocypher_SOURCE_DIR}/src/monocypher.c
 )
 
 # Includes
 target_include_directories(Cypress PRIVATE
-        ${CMAKE_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/Source
-        ${CMAKE_SOURCE_DIR}/External/nlohmann/include
-        ${monocypher_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/Source
+    ${monocypher_SOURCE_DIR}/src
 )
 
 # Precompiled headers
@@ -152,6 +155,7 @@ target_link_libraries(Cypress PRIVATE
         EABase
         EASTL
         minhook
+        nlohmann_json
         ws2_32.lib
         winhttp.lib
         bcrypt.lib

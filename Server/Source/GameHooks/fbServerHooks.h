@@ -17,6 +17,7 @@
 
 #if(HAS_DEDICATED_SERVER)
 
+#ifndef CYPRESS_BFN
 DECLARE_HOOK(
 	fb_Server_start,
 	__fastcall,
@@ -26,6 +27,18 @@ DECLARE_HOOK(
 	fb::ServerSpawnInfo* info,
 	Kyber::ServerSpawnOverrides* spawnOverrides
 );
+#else
+DECLARE_HOOK(
+	fb_Server_start,
+	__fastcall,
+	__int64,
+
+	void* thisPtr,
+	fb::ServerSpawnInfo* info,
+	Kyber::ServerSpawnOverrides* spawnOverrides,
+	Kyber::SocketManager* socketManager
+);
+#endif
 
 DECLARE_HOOK(
 	fb_Server_update,
@@ -69,6 +82,7 @@ DECLARE_HOOK(
 	void* thisPtr,
 	struct fb::EntityEvent* event
 );
+
 #else
 DECLARE_HOOK(
 	fb_ServerPVZLevelControlEntity_loadLevel,
@@ -119,6 +133,17 @@ DECLARE_HOOK(
 	const char* nickname
 );
 
+#ifdef CYPRESS_BFN
+DECLARE_HOOK(
+	fb_ServerPlayer_disconnect,
+	__fastcall,
+	void,
+
+	fb::ServerPlayer* thisPtr,
+	fb::SecureReason reason,
+	eastl::new_string* reasonText
+);
+#else
 DECLARE_HOOK(
 	fb_ServerPlayer_disconnect,
 	__fastcall,
@@ -137,4 +162,5 @@ DECLARE_HOOK(
 	void* a1,
 	int a2
 );
+#endif
 #endif

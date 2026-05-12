@@ -3,9 +3,10 @@
 
 #include <string>
 #include <thread>
+#include <intrin.h>
 #include <Cypress/Core/Program.h>
 #include <Cypress/Core/Logging.h>
-#include <fb/Engine/NetworkableMessage.h>
+#include <Cypress/Core/Console/ConsoleFunctions.h>
 #include <fb/Engine/Server.h>
 #include <fb/Engine/ServerGameContext.h>
 
@@ -71,6 +72,9 @@ static std::string ToLowerStr(const std::string& s)
 	return out;
 }
 
+#ifdef CYPRESS_BFN
+#endif
+
 static bool IsNameValid(const std::string& name, std::string& reason)
 {
 	if (name.empty())
@@ -120,6 +124,7 @@ static bool IsNameValid(const std::string& name, std::string& reason)
 }
 
 #if(HAS_DEDICATED_SERVER)
+#ifndef CYPRESS_BFN
 DEFINE_HOOK(
 	fb_Server_start,
 	__fastcall,
@@ -141,9 +146,56 @@ DEFINE_HOOK(
 		if (g_program->IsServer())
 			g_program->GetServer()->StartSideChannel();
 	}
+
 #endif
 	return Orig_fb_Server_start(thisPtr, info, spawnOverrides);
 }
+
+#else
+
+DEFINE_HOOK(
+	fb_Server_start,
+	__fastcall,
+	__int64,
+
+	void* thisPtr,
+	fb::ServerSpawnInfo* info,
+	Kyber::ServerSpawnOverrides* spawnOverrides,
+	Kyber::SocketManager* socketManager
+)
+{
+#if(HAS_DEDICATED_SERVER)
+	if (!g_program->GetInitialized())
+	{
+		bool wsaInit = g_program->InitWSA();
+		CYPRESS_ASSERT(wsaInit, "WSA failed to initialize!");
+		g_program->SetInitialized(true);
+
+		// Start side-channel TCP listener for server
+		if (g_program->IsServer())
+			g_program->GetServer()->StartSideChannel();
+	}
+
+	static bool startedBfnMetadataThread = false;
+	if (g_program->IsServer() && !startedBfnMetadataThread)
+	{
+		startedBfnMetadataThread = true;
+		std::thread([]()
+		{
+			while (g_program && g_program->IsServer())
+			{
+				Cypress::Server* server = g_program->GetServer();
+				if (server)
+					server->TickPlayerMetadata();
+				Sleep(1000);
+			}
+		}).detach();
+	}
+
+#endif
+	return Orig_fb_Server_start(thisPtr, info, spawnOverrides, socketManager);
+}
+#endif
 
 #ifdef CYPRESS_BFN
 DEFINE_HOOK(
@@ -160,8 +212,8 @@ DEFINE_HOOK(
 	if (g_program->IsServer())
 	{
 		Cypress::Server* server = g_program->GetServer();
-
 		server->UpdateStatus(thisPtr, (float)ptrread<int>(params, 0x18) * 0.000000001);
+		server->TickPlayerMetadata();
 		
 		bool statusUpdated = !server->GetStatusUpdated();
 		server->SetStatusUpdated(true);
@@ -199,6 +251,7 @@ DEFINE_HOOK(
 	{
 		Cypress::Server* server = g_program->GetServer();
 		server->UpdateStatus(thisPtr, ptrread<float>(params, CYPRESS_GW_SELECT(0x18, 0x28, 0)));
+		server->TickPlayerMetadata();
 
 		bool statusUpdated = !server->GetStatusUpdated();
 		server->SetStatusUpdated(true);
@@ -354,6 +407,11 @@ DEFINE_HOOK(
 {
 	Orig_fb_ServerPVZRoundControl_event(thisPtr, event);
 
+	if (g_program->IsServer())
+	{
+		Cypress::Server* server = g_program->GetServer();
+	}
+
 	if (event->eventId == 0xDB4B330) //Reset
 	{
 		Cypress::Server* pServer = g_program->GetServer();
@@ -479,6 +537,10 @@ DEFINE_HOOK(
 	}
 
 	Orig_fb_ServerLoadLevelMessage_post(levelSetup, fadeOut, forceReloadResources);
+
+#ifdef CYPRESS_GW2
+	LoadoutValidator::getInstance().invalidate();
+#endif
 }
 #endif
 
@@ -700,6 +762,10 @@ DEFINE_HOOK(
 {
 	if (!player->isAIPlayer() && nickname && nickname[0] != '\0')
 	{
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+			g_program->GetServer()->ClearPlayerMetadata(nickname, player->getPlayerId());
+#endif
 		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has joined the server", player->getPlayerId(), nickname);
 		if (Cypress_IsEmbeddedMode())
 			Cypress_EmitJsonPlayerEvent("playerJoin", player->getPlayerId(), nickname);
@@ -752,18 +818,79 @@ DEFINE_HOOK(
 	}
 
 #ifdef CYPRESS_GW2
-	// init anticheat + loadout validator on first player join
-	static bool anticheatInitialized = false;
-	if (!anticheatInitialized)
-	{
+	if (LoadoutValidator::getInstance().needsInit())
 		LoadoutValidator::getInstance().init();
-		anticheatInitialized = true;
-	}
 #endif
 
-	return Orig_fb_ServerPlayerManager_addPlayer(thisPtr, player, nickname);
+	void* result = Orig_fb_ServerPlayerManager_addPlayer(thisPtr, player, nickname);
+
+#ifdef CYPRESS_BFN
+#if(HAS_DEDICATED_SERVER)
+	if (g_program->IsServer() && !player->isAIPlayer() && nickname && nickname[0] != '\0')
+	{
+		Cypress::Server* server = g_program->GetServer();
+		server->TickPlayerMetadata();
+
+		std::string joinedName(nickname);
+		std::thread([joinedName]()
+		{
+			Sleep(2000);
+			if (!g_program || !g_program->IsServer() || !g_program->GetServer())
+				return;
+
+			g_program->GetServer()->TickPlayerMetadata();
+		}).detach();
+	}
+#endif
+#endif
+
+	return result;
 }
 
+#ifdef CYPRESS_BFN
+DEFINE_HOOK(
+	fb_ServerPlayer_disconnect,
+	__fastcall,
+	void,
+
+	fb::ServerPlayer* thisPtr,
+	fb::SecureReason reason,
+	eastl::new_string* reasonText
+)
+{
+	const char* reasonStr = "None provided";
+
+	if (!reasonText->empty())
+		reasonStr = reasonText->c_str();
+
+	if (!thisPtr->isAIPlayer() && thisPtr->m_name && thisPtr->m_name[0] != '\0')
+	{
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+			g_program->GetServer()->ClearPlayerMetadata(thisPtr->m_name, thisPtr->getPlayerId());
+#endif
+		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
+			thisPtr->getPlayerId(),
+			thisPtr->m_name,
+			reasonStr,
+			fb::SecureReason_toString(reason));
+
+		if (Cypress_IsEmbeddedMode())
+			Cypress_EmitJsonPlayerEvent("playerLeave", thisPtr->getPlayerId(), thisPtr->m_name, reasonStr);
+
+		// Notify moderator clients via side-channel
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+		{
+			g_program->GetServer()->GetSideChannel()->Broadcast(
+				{ {"type", "scPlayerLeave"}, {"id", thisPtr->getPlayerId()}, {"name", std::string(thisPtr->m_name)} });
+		}
+#endif
+	}
+
+	Orig_fb_ServerPlayer_disconnect(thisPtr, reason, reasonText);
+}
+#else
 DEFINE_HOOK(
 	fb_ServerPlayer_disconnect,
 	__fastcall,
@@ -778,6 +905,10 @@ DEFINE_HOOK(
 
 	if (!thisPtr->isAIPlayer() && thisPtr->m_name && thisPtr->m_name[0] != '\0')
 	{
+#if(HAS_DEDICATED_SERVER)
+		if (g_program->IsServer())
+			g_program->GetServer()->ClearPlayerMetadata(thisPtr->m_name, thisPtr->getPlayerId());
+#endif
 		CYPRESS_LOGTOSERVER(LogLevel::Info, "[Id: {}] {} has left the server (Reason: {}, {})",
 			thisPtr->getPlayerId(),
 			thisPtr->m_name,
@@ -813,4 +944,5 @@ DEFINE_HOOK(
 		a2 = 0;
 	return Orig_fb_sub_140112AA0(a1, a2);
 }
+#endif
 #endif

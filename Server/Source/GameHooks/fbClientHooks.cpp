@@ -23,6 +23,11 @@ DEFINE_HOOK(
 	client->SetFbClientInstance(thisPtr);
 	client->SetClientState(state);
 
+	if (state == fb::ClientState_Startup)
+	{
+		Cypress::PresenceManager::Create();
+	}
+
 	if (state == fb::ClientState_ConnectToServer)
 	{
 		client->SetJoiningServer(true);
@@ -30,11 +35,6 @@ DEFINE_HOOK(
 	if (prevState == fb::ClientState_ConnectToServer)
 	{
 		client->SetJoiningServer(false);
-	}
-
-	if (state == fb::ClientState_Ingame && !client->AddedPrimaryUser())
-	{
-		client->AddPrimaryUser();
 	}
 
 	Orig_fb_Client_enterState(thisPtr, state, prevState);
@@ -213,6 +213,7 @@ DEFINE_HOOK(
 	Orig_fb_OnlineManager_connectToAddress(thisPtr, ipAddr, serverPassword);
 }
 
+#ifndef CYPRESS_BFN
 DEFINE_HOOK(
 	fb_OnlineManager_onGotDisconnected,
 	__fastcall,
@@ -245,8 +246,38 @@ DEFINE_HOOK(
 
 	exit(0xCC1);
 }
+#endif
 
 #ifdef CYPRESS_BFN
+DEFINE_HOOK(
+	fb_OnlineManager_onGotDisconnected,
+	__fastcall,
+	void,
+
+	void* thisPtr,
+	fb::SecureReason reason,
+	eastl::new_string* reasonText
+)
+{
+	if (g_program->IsClient())
+		g_program->GetClient()->DisconnectSideChannel();
+
+	const char* reasonStr = reasonText->empty() ? "No reason provided" : reasonText->c_str();
+	std::string bodyMsg = std::format("Disconnect: {} ({})", reasonStr, fb::SecureReason_toString(reason));
+
+	if (reason == fb::SecureReason_TimedOut || reason == fb::SecureReason_NoReply || reason == fb::SecureReason_ConnectFailed)
+	{
+		if (MessageBoxA(GetActiveWindow(), bodyMsg.c_str(), "Disconnected", MB_ICONINFORMATION | MB_RETRYCANCEL) == IDRETRY)
+			return Orig_fb_OnlineManager_onGotDisconnected(thisPtr, reason, reasonText);
+	}
+	else
+	{
+		MessageBoxA(GetActiveWindow(), bodyMsg.c_str(), "Disconnected", MB_ICONINFORMATION | MB_OK);
+	}
+
+	exit(0xCC1);
+}
+
 DEFINE_HOOK(
 	fb_EAUser_ctor,
 	__fastcall,

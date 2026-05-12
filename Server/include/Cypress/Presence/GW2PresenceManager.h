@@ -45,7 +45,9 @@ namespace fb
             Bool = value;
         }
     };
+#ifdef CYPRESS_GW2
     static_assert(sizeof(PVZRecordInfo) == 0x30);
+#endif
 
     struct PresencePVZUpdateByteVaultRecordMessage : public Message
     {
@@ -125,7 +127,6 @@ namespace fb
         // same as above but with a different value type
         eastl::map<int, int> unkmap;
     };
-    static_assert(offsetof(PVZClientUtil, unkmap) == 0x2D1618);
 
     struct Thing
     {
