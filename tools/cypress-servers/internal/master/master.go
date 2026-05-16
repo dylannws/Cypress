@@ -1,4 +1,4 @@
-package master
+﻿package master
 
 import (
 	"crypto/ed25519"
@@ -50,6 +50,7 @@ const (
 )
 
 var privateIPRe = regexp.MustCompile(`^(0\.0\.0\.0|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)`)
+var validAddrRe = regexp.MustCompile(`^[a-zA-Z0-9.\-]+(:\d{1,5})?$`)
 
 // rate limiter
 
@@ -604,6 +605,10 @@ func (s *masterState) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	if addr == "" || isPrivateIP(addr) {
 		addr = ip
 	}
+	if !validAddrRe.MatchString(addr) {
+		errResp(w, 400, "invalid address format")
+		return
+	}
 
 	key := fmt.Sprintf("%s:%d", addr, port)
 
@@ -625,7 +630,11 @@ func (s *masterState) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		existing.ModpackURL = sanitizeURL(getString(data, "modpackUrl"), 512)
 		existing.Level = truncStr(getString(data, "level"), 128)
 		existing.Mode = truncStr(getString(data, "mode"), 128)
-		existing.RelayAddress = truncStr(getString(data, "relayAddress"), 256)
+		relayAddr := truncStr(getString(data, "relayAddress"), 256)
+		if relayAddr != "" && !validAddrRe.MatchString(relayAddr) {
+			relayAddr = ""
+		}
+		existing.RelayAddress = relayAddr
 		existing.RelayKey = truncStr(getString(data, "relayKey"), 256)
 		existing.RelayCode = truncStr(getString(data, "relayCode"), 16)
 		existing.HasPassword = getBool(data, "hasPassword")
@@ -653,19 +662,25 @@ func (s *masterState) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	token := generateToken(32)
 	maxP := clampInt(getInt(data, "maxPlayers", 24), 1, 100)
 	entry := &serverEntry{
-		Address:       addr,
-		Port:          port,
-		Game:          game,
-		Token:         token,
-		Players:       clampInt(getInt(data, "players", 0), 0, maxP),
-		MaxPlayers:    maxP,
-		Motd:          truncStr(getString(data, "motd"), 256),
-		Icon:          truncStr(getString(data, "icon"), iconMaxB64),
-		Modded:        getBool(data, "modded"),
-		ModpackURL:    sanitizeURL(getString(data, "modpackUrl"), 512),
-		Level:         truncStr(getString(data, "level"), 128),
-		Mode:          truncStr(getString(data, "mode"), 128),
-		RelayAddress:  truncStr(getString(data, "relayAddress"), 256),
+		Address:    addr,
+		Port:       port,
+		Game:       game,
+		Token:      token,
+		Players:    clampInt(getInt(data, "players", 0), 0, maxP),
+		MaxPlayers: maxP,
+		Motd:       truncStr(getString(data, "motd"), 256),
+		Icon:       truncStr(getString(data, "icon"), iconMaxB64),
+		Modded:     getBool(data, "modded"),
+		ModpackURL: sanitizeURL(getString(data, "modpackUrl"), 512),
+		Level:      truncStr(getString(data, "level"), 128),
+		Mode:       truncStr(getString(data, "mode"), 128),
+		RelayAddress: func() string {
+			r := truncStr(getString(data, "relayAddress"), 256)
+			if r != "" && !validAddrRe.MatchString(r) {
+				return ""
+			}
+			return r
+		}(),
 		RelayKey:      truncStr(getString(data, "relayKey"), 256),
 		RelayCode:     truncStr(getString(data, "relayCode"), 16),
 		HasPassword:   getBool(data, "hasPassword"),

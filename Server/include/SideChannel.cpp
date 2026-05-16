@@ -907,6 +907,7 @@ namespace Cypress
 				}
 
 				peer.isModerator = true;
+				peer.isGlobalMod = true;
 				CYPRESS_LOGMESSAGE(LogLevel::Info, "SideChannel: {} verified as global moderator", peer.name);
 				SendToPeer(peer, { {"type", "moderatorStatus"}, {"moderator", true} });
 				if (m_onModeratorAuth)

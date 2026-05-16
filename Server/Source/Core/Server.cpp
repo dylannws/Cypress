@@ -1480,36 +1480,48 @@ namespace Cypress
 			std::string cmd = msg.value("cmd", "");
 			if (cmd.empty()) return;
 
-			// only let mods run whitelisted commands
-			static const char* allowedPrefixes[] = {
+			auto matchesPrefix = [](const std::string& s, const char* prefix) {
+				size_t len = strlen(prefix);
+				return s.starts_with(prefix) && (s.size() == len || s[len] == ' ');
+			};
+
+			// player management: all mods (global and local)
+			static const char* playerMgmtPrefixes[] = {
+				"Server.KickPlayer",
+				"Server.BanPlayer",
+				"Server.AddBan",
+				"Server.UnbanPlayer",
+				"Cypress.GetBans"
+			};
+
+			// server control: local (server appointed) mods only
+			static const char* serverCtrlPrefixes[] = {
 				"Server.LoadLevel",
 				"Server.RestartLevel",
 				"Server.LoadNextPlaylistSetup",
 				"Server.LoadNextRound",
 				"Server.Say",
 				"Server.SayToPlayer",
-				"Server.AddBan",
-				"Server.UnbanPlayer",
-				"Server.KickPlayer",
-				"Server.BanPlayer",
 				"Cypress.SetAnticheat",
-				"Cypress.SetSetting",
-				"Cypress.GetBans"
+				"Cypress.SetSetting"
 			};
 
 			bool allowed = false;
-			for (const char* prefix : allowedPrefixes)
+			for (const char* prefix : playerMgmtPrefixes)
 			{
-				if (cmd.starts_with(prefix) && (cmd.size() == strlen(prefix) || cmd[strlen(prefix)] == ' '))
+				if (matchesPrefix(cmd, prefix)) { allowed = true; break; }
+			}
+			if (!allowed && !peer.isGlobalMod)
+			{
+				for (const char* prefix : serverCtrlPrefixes)
 				{
-					allowed = true;
-					break;
+					if (matchesPrefix(cmd, prefix)) { allowed = true; break; }
 				}
 			}
 
 			if (!allowed)
 			{
-				m_sideChannel.SendToPeer(peer, { {"type", "error"}, {"msg", "Command not allowed"} });
+				m_sideChannel.SendToPeer(peer, { {"type", "error"}, {"msg", "Command not allowed for global moderators"} });
 				return;
 			}
 

@@ -87,7 +87,7 @@ function refreshModTabVisibility() {
     if (!inst) return;
     var isMod = hasModAccess(inst);
     document.getElementById('modPlayersTabBtn').style.display = isMod ? '' : 'none';
-    document.getElementById('modServerTabBtn').style.display = isMod ? '' : 'none';
+    document.getElementById('modServerTabBtn').style.display = inst.isModerator ? '' : 'none';
 }
 
 function getInstanceBgSrc(inst) {
@@ -255,8 +255,8 @@ function onInstanceOutput(pid, line) {
             if (selectedInstancePid === pid) {
                 var showMod = hasModAccess(inst);
                 document.getElementById('modPlayersTabBtn').style.display = showMod ? '' : 'none';
-                document.getElementById('modServerTabBtn').style.display = showMod ? '' : 'none';
-                document.getElementById('modBroadcastRow').style.display = (showMod && inst.game !== 'BFN') ? '' : 'none';
+                document.getElementById('modServerTabBtn').style.display = inst.isModerator ? '' : 'none';
+                document.getElementById('modBroadcastRow').style.display = (inst.isModerator && inst.game !== 'BFN') ? '' : 'none';
                 if (showMod) {
                     updateModeratorTab();
                 } else if (document.getElementById('itab-mod-players')?.classList.contains('active') ||
@@ -573,12 +573,13 @@ function selectInstance(pid) {
     document.getElementById('serverTabBtn').style.display = inst.isServer ? '' : 'none';
     // moderator tabs: only for client instances with mod status (local or global)
     var isMod = hasModAccess(inst);
+    var isLocalMod = inst && inst.isModerator;
     document.getElementById('modPlayersTabBtn').style.display = isMod ? '' : 'none';
-    document.getElementById('modServerTabBtn').style.display = isMod ? '' : 'none';
+    document.getElementById('modServerTabBtn').style.display = isLocalMod ? '' : 'none';
     var showBroadcast = inst.game !== 'BFN';
     document.getElementById('broadcastRow').style.display = (inst.isServer && showBroadcast) ? '' : 'none';
     document.getElementById('sayToPlayerRow').style.display = (inst.isServer && showBroadcast) ? '' : 'none';
-    document.getElementById('modBroadcastRow').style.display = (isMod && showBroadcast) ? '' : 'none';
+    document.getElementById('modBroadcastRow').style.display = (isLocalMod && showBroadcast) ? '' : 'none';
 
     if (inst.isServer) populateSrvControls(inst);
 
@@ -1984,7 +1985,7 @@ function onModModeChanged() {
 
 function modLoadMap() {
     const inst = instances[selectedInstancePid];
-    if (!inst || inst.exited) return;
+    if (!inst || inst.exited || !inst.isModerator) return;
 
     const rawLevelVal = document.getElementById('modLevel').value;
     const modeId = document.getElementById('modMode').value;
@@ -2017,12 +2018,14 @@ function modLoadMap() {
 }
 
 function modRestartLevel() {
-    if (!selectedInstancePid) return;
+    var inst = instances[selectedInstancePid];
+    if (!inst || !inst.isModerator) return;
     send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.ModCommand Server.RestartLevel' });
 }
 
 function modApplyModifiers() {
-    if (!selectedInstancePid) return;
+    var inst = instances[selectedInstancePid];
+    if (!inst || !inst.isModerator) return;
     const cmds = typeof getInstanceModifierCommands === 'function' ? getInstanceModifierCommands('modModifiers') : [];
     cmds.forEach(cmd => {
         send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.ModSetting ' + cmd });
@@ -2031,7 +2034,8 @@ function modApplyModifiers() {
 }
 
 function modNextPlaylist() {
-    if (!selectedInstancePid) return;
+    var inst = instances[selectedInstancePid];
+    if (!inst || !inst.isModerator) return;
     send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.ModCommand Server.LoadNextPlaylistSetup' });
 }
 
@@ -2054,6 +2058,8 @@ document.addEventListener('change', function(e) {
         send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.SetAnticheat ' + setting + ' ' + val });
     }
     if (cb.classList.contains('ac-mod-toggle')) {
+        const modInst = instances[selectedInstancePid];
+        if (!modInst || !modInst.isModerator) return;
         const setting = cb.getAttribute('data-ac');
         const val = cb.checked ? 'true' : 'false';
         send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.ModCommand Cypress.SetAnticheat ' + setting + ' ' + val });
@@ -2200,9 +2206,11 @@ function updateModHistoryTab() {
 
 // mod remote console
 function modSendConsole() {
+    var inst = instances[selectedInstancePid];
+    if (!inst || !inst.isModerator) return;
     var input = document.getElementById('modConsoleInput');
     var cmd = (input.value || '').trim();
-    if (!cmd || !selectedInstancePid) return;
+    if (!cmd) return;
     send('sendCommand', { pid: selectedInstancePid, cmd: 'Cypress.ModCommand ' + cmd });
     input.value = '';
 }

@@ -29,6 +29,7 @@ namespace Cypress
 		Cypress::HardwareFingerprint fingerprint;
 		bool authenticated = false;
 		bool isModerator = false;
+		bool isGlobalMod = false; // true if granted via global mod challenge, false if local server mod
 		bool subscribed = false;
 		std::string recvBuf;
 		std::string challengeNonce; // server sends this on connect, client must prove hwid ownership
