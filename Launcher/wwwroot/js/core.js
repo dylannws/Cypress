@@ -156,20 +156,28 @@ window.external.receiveMessage(function (msg) {
         case 'relayResolved': onRelayResolved(data); break;
         case 'windowDragStart': if (window.onWindowDragStart) window.onWindowDragStart(data); break;
         case 'mapBg':
-            if (data.key && data.data) {
-                MAP_BG_CACHE[data.key] = base64ToBlobUrl(data.data);
-                updateChangedSettingsIndicator();
-                if (typeof updateInstanceList === 'function') updateInstanceList();
-                if (typeof updateSrvOverride === 'function') updateSrvOverride();
-                if (typeof updatePickerOptionBgs === 'function') updatePickerOptionBgs(data.key);
-                if (typeof filterBrowserList === 'function') filterBrowserList();
+            if (data.key) {
+                if (data.data) {
+                    MAP_BG_CACHE[data.key] = base64ToBlobUrl(data.data);
+                    updateChangedSettingsIndicator();
+                    if (typeof updateInstanceList === 'function') updateInstanceList();
+                    if (typeof updateSrvOverride === 'function') updateSrvOverride();
+                    if (typeof updatePickerOptionBgs === 'function') updatePickerOptionBgs(data.key);
+                    if (typeof filterBrowserList === 'function') filterBrowserList();
+                } else {
+                    MAP_BG_CACHE[data.key] = false;
+                }
             }
             break;
         case 'modeBg':
-            if (data.key && data.data) {
-                MODE_BG_CACHE[data.key] = base64ToBlobUrl(data.data);
-                if (typeof updateModePickerOptionBgs === 'function') updateModePickerOptionBgs(data.key);
-                if (typeof filterBrowserList === 'function') filterBrowserList();
+            if (data.key) {
+                if (data.data) {
+                    MODE_BG_CACHE[data.key] = base64ToBlobUrl(data.data);
+                    if (typeof updateModePickerOptionBgs === 'function') updateModePickerOptionBgs(data.key);
+                    if (typeof filterBrowserList === 'function') filterBrowserList();
+                } else {
+                    MODE_BG_CACHE[data.key] = false;
+                }
             }
             break;
         case 'aiSetBg':

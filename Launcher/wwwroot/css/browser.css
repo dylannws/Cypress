@@ -145,13 +145,14 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 18px 20px;
-    min-height: 78px;
-    border-radius: 6px;
+    padding: 20px 24px;
+    min-height: 96px;
+    border-radius: 10px;
     cursor: pointer;
     transition: background var(--transition);
     position: relative;
     overflow: hidden;
+    border: 1px solid var(--border);
 }
 /* game bg image behind each entry */
 .browser-entry-bg {
@@ -257,17 +258,20 @@
 }
 .browser-entry-title {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     font-size: 13px;
     font-weight: 600;
 }
-.browser-entry-motd {
+.browser-entry-motd,
+.browser-entry-motd.motd-rendered {
+    display: block;
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-height: none;
+    overflow: visible;
 }
 .browser-lock-icon {
     vertical-align: middle;

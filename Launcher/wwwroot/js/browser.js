@@ -76,6 +76,16 @@ function resolveBrowserDisplay(s) {
     var levelName = resolveLevelName(game, s.level);
     var modeName = resolveModeName(game, s.mode);
     var mapBgKey = typeof LEVEL_MAP_BG !== 'undefined' ? LEVEL_MAP_BG[s.level] : null;
+    // partial match fallback for map bg
+    if (!mapBgKey && s.level && typeof GAME_DATA !== 'undefined' && GAME_DATA[game] && GAME_DATA[game].levels) {
+        var levels = GAME_DATA[game].levels;
+        for (var i = 0; i < levels.length; i++) {
+            if (s.level.indexOf(levels[i].id) !== -1 || levels[i].id.indexOf(s.level) !== -1) {
+                mapBgKey = LEVEL_MAP_BG[levels[i].id] || null;
+                if (mapBgKey) break;
+            }
+        }
+    }
     var modeBgKey = typeof MODE_BG !== 'undefined' ? MODE_BG[s.mode] : null;
     // prefix match for mode bg
     if (!modeBgKey && s.mode && typeof MODE_BG !== 'undefined') {
@@ -100,6 +110,7 @@ function refreshBrowser() {
 }
 
 function onBrowserList(data) {
+    if (data.error && browserServers.length > 0) return; // keep last data on rate limit / error
     browserServers = data.servers || [];
     // clear live caches so stale entries from dead servers don't persist
     browserPlayerCache = {};

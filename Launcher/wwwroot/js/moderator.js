@@ -36,26 +36,24 @@ function onModLoginResult(data) {
     if (data.ok) {
         modLoggedIn = true;
         modUsername = data.username || '';
+        var navBtn = document.getElementById('modNavBtn');
+        if (navBtn) navBtn.style.display = '';
         document.getElementById('modAuthSection').style.display = 'none';
         document.getElementById('modPanel').style.display = '';
         document.getElementById('modUsernameDisplay').textContent = modUsername;
         document.getElementById('modAuthStatus').textContent = t('moderator.logged_in_as', { name: modUsername });
-        document.getElementById('modLoginError').style.display = 'none';
         // refresh mod tabs on any selected client instance (global mod override)
         if (typeof refreshModTabVisibility === 'function') refreshModTabVisibility();
         // load bans
         send('modGetGlobalBans', {});
-    } else {
-        var err = document.getElementById('modLoginError');
-        err.textContent = data.error || t('moderator.login_failed');
-        err.style.display = '';
     }
 }
 
 function onModLogoutResult() {
     modLoggedIn = false;
     modUsername = '';
-    document.getElementById('modAuthSection').style.display = '';
+    var navBtn = document.getElementById('modNavBtn');
+    if (navBtn) navBtn.style.display = 'none';
     document.getElementById('modPanel').style.display = 'none';
     document.getElementById('modAuthStatus').textContent = t('moderator.not_logged_in');
     // refresh mod tabs (might lose access if not local mod)

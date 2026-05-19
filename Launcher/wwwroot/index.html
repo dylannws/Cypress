@@ -115,7 +115,7 @@
                     <span data-i18n="nav.instances">Instances</span>
                     <span class="instance-badge" id="instanceBadge" style="display:none;">0</span>
                 </button>
-                <button class="nav-btn" data-tab="moderator" onclick="switchTab('moderator')">
+                <button class="nav-btn" id="modNavBtn" data-tab="moderator" onclick="switchTab('moderator')" style="display:none;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     <span data-i18n="nav.moderator">Moderator</span>
                 </button>
@@ -1549,13 +1549,7 @@
                     <h2 data-i18n="moderator.title">Cypress Moderator</h2>
                     <p class="text-muted" id="modAuthStatus">Not logged in</p>
                 </div>
-                <div id="modAuthSection">
-                    <div class="card" style="max-width:420px;">
-                        <p class="text-muted" style="margin-bottom:12px;" data-i18n="moderator.sign_in_desc">Sign in with your EA account to claim moderator access. Your EA account must be on the moderator whitelist.</p>
-                        <button class="btn btn-primary" onclick="modLogin()" data-i18n="moderator.claim_btn">Claim Moderator</button>
-                        <p class="text-muted mod-auth-error" id="modLoginError" style="display:none;color:var(--danger);margin-top:8px;"></p>
-                    </div>
-                </div>
+                <div id="modAuthSection" style="display:none;"></div>
                 <div id="modPanel" style="display:none;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
                         <span>Logged in as <strong id="modUsernameDisplay"></strong></span>

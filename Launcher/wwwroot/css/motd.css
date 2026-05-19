@@ -2,8 +2,6 @@
     font-size: 12px;
     line-height: 1.4;
     word-break: break-word;
-    max-height: 4.8em; 
-    overflow: hidden;
 }
 .motd-line {
     display: block;

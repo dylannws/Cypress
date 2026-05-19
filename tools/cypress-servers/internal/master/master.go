@@ -548,7 +548,7 @@ func getBool(m map[string]any, key string) bool {
 
 func (s *masterState) handleServers(w http.ResponseWriter, r *http.Request) {
 	ip := getRealIP(r, s.behindProxy)
-	if !s.rl.check(ip, "servers", 10, 10*time.Second) {
+	if !s.rl.check(ip, "servers", 30, 60*time.Second) {
 		errResp(w, 429, "Rate limited")
 		return
 	}

@@ -18,55 +18,55 @@ public partial class MessageHandler
 
         string appdataDir = GetTranslationsDir();
         string appdataFile = Path.Combine(appdataDir, lang + ".json");
-
         string bundledFile = Path.Combine(AppContext.BaseDirectory, "assets", "translations", lang + ".json");
-        JObject? bundled = null;
+
+        JObject? strings = null;
+
         if (File.Exists(bundledFile))
         {
-            try { bundled = JObject.Parse(File.ReadAllText(bundledFile)); } catch { }
-        }
+            try { strings = JObject.Parse(File.ReadAllText(bundledFile)); } catch { }
 
-        if (File.Exists(appdataFile))
-        {
-            try
-            {
-                var userStrings = JObject.Parse(File.ReadAllText(appdataFile));
-                if (bundled != null)
-                {
-                    foreach (var prop in bundled.Properties())
-                    {
-                        if (userStrings[prop.Name] == null)
-                            userStrings[prop.Name] = prop.Value;
-                    }
-                }
-                Send(new JObject { ["type"] = "translations", ["lang"] = lang, ["strings"] = userStrings });
-                return;
-            }
-            catch { }
-        }
-
-        if (bundled != null)
-        {
-            // seed AppData with bundled file so the user can customize it later
+            // overwrite AppData so users always get the latest bundled translations
             try
             {
                 Directory.CreateDirectory(appdataDir);
-                if (!File.Exists(appdataFile))
-                    File.Copy(bundledFile, appdataFile);
+                File.Copy(bundledFile, appdataFile, overwrite: true);
             }
             catch { }
+        }
+        else if (File.Exists(appdataFile))
+        {
+            // user-provided translation with no bundled equivalent
+            try { strings = JObject.Parse(File.ReadAllText(appdataFile)); } catch { }
+        }
 
-            Send(new JObject { ["type"] = "translations", ["lang"] = lang, ["strings"] = bundled });
+        if (strings == null)
+        {
+            if (lang != "en_us") { OnGetTranslations("en_us"); return; }
+            Send(new JObject { ["type"] = "translations", ["lang"] = "en_us", ["strings"] = new JObject() });
             return;
         }
 
+        // merge en_us as fallback for any keys missing from this language
         if (lang != "en_us")
         {
-            OnGetTranslations("en_us");
-            return;
+            string enFile = Path.Combine(AppContext.BaseDirectory, "assets", "translations", "en_us.json");
+            if (File.Exists(enFile))
+            {
+                try
+                {
+                    var en = JObject.Parse(File.ReadAllText(enFile));
+                    foreach (var prop in en.Properties())
+                    {
+                        if (strings[prop.Name] == null)
+                            strings[prop.Name] = prop.Value;
+                    }
+                }
+                catch { }
+            }
         }
 
-        Send(new JObject { ["type"] = "translations", ["lang"] = "en_us", ["strings"] = new JObject() });
+        Send(new JObject { ["type"] = "translations", ["lang"] = lang, ["strings"] = strings });
     }
 
     private void OnGetTranslationsList()

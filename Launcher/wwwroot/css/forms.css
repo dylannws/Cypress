@@ -392,13 +392,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.server-entry-motd {
+.server-entry-motd,
+.server-entry-motd.motd-rendered {
+    display: block;
     font-size: 11px;
     color: var(--accent-warm);
     font-style: italic;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-height: none;
+    overflow: visible;
 }
 .server-entry-address {
     font-size: 11px;

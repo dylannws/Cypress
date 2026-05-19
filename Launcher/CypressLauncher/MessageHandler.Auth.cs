@@ -56,6 +56,7 @@ public partial class MessageHandler
 						m_authUid = (string?)body["uid"]?.ToString() ?? m_authUid;
 						Send(new JObject { ["type"] = "authStatus", ["loggedIn"] = true, ["displayName"] = m_authDisplayName, ["pid"] = m_authPid, ["uid"] = m_authUid });
 						await AutoRegisterIdentityAsync();
+						OnModLogin(new JObject());
 						return;
 					}
 				}
